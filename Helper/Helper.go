@@ -1,44 +1,51 @@
 package Helper
 
 import (
+	"encoding/json"
+	"io"
 	"os"
-	"time"
 )
 
+// Read string from file
 func Read(path string) (string, error) {
 	dat, err := os.ReadFile(path)
 	return string(dat), err
 }
 
-func Write(s, path string) error {
+// Write string to file
+func Write(i interface{}, path string) error {
 	f, err := os.Create(path)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-
-	_, err = f.WriteString(s)
+	b, _ := json.Marshal(i)
+	_, err = f.WriteString(string(b))
 	if err != nil {
 		return err
 	}
 	f.Sync()
 	return nil
 }
-func GetDate(format string) string {
 
-	if format == "date" {
-		return time.Now().Format("02-01-2006")
-	}
-	if format == "time" {
-		time.Now().Format("15:04:05")
-	}
-	return time.Now().Format("02-01-2006 15:04:05.000")
-}
-
+// GetPath Return current directory on executable file
 func GetPath() (string, error) {
 	path, err := os.Getwd()
 	if err != nil {
 		return "", err
 	}
 	return path, err
+}
+
+// ToJSON serializes the given interface into a string based JSON format
+func ToJSON(i interface{}, w io.Writer) error {
+	e := json.NewEncoder(w)
+	return e.Encode(i)
+}
+
+// FromJSON deserializes the object from JSON string
+// in an io.Reader to the given interface
+func FromJSON(i interface{}, r io.Reader) error {
+	d := json.NewDecoder(r)
+	return d.Decode(i)
 }

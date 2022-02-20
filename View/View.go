@@ -1,32 +1,41 @@
 package View
 
 import (
-	"fmt"
+	"github.com/go-openapi/runtime/middleware"
 	"github.com/gorilla/mux"
 	"github.com/mhthrh/ApiStore/Controller"
-	"github.com/mhthrh/ApiStore/Model/Result"
+	"github.com/mhthrh/ApiStore/Helper/Validation"
+	"log"
 	"net/http"
 )
 
-func RunApi(add string) {
-	fmt.Println("initial server on: ", add)
-	router := mux.NewRouter()
-	RunApiOnRouter(router)
-	http.ListenAndServe(add, router)
-}
+func RunApiOnRouter(sm *mux.Router, l *log.Logger) {
 
-func RunApiOnRouter(r *mux.Router) {
+	v := Validation.NewValidation()
+	// create the handlers
+	ph := Controller.NewBooks(l, v)
 
-	sub := r.PathPrefix("/api/v1/book").Subrouter()
-	sub.Methods("GET").Path("/books/{range}").HandlerFunc(Controller.AllBooks)
-	sub.Methods("GET").Path("/findbook/{isbn}").HandlerFunc(Controller.Book)
-	sub.Methods("POST").Path("/add").HandlerFunc(Controller.AddBook)
-	sub.Methods("GET").Path("/delete/{isbn}").HandlerFunc(Controller.DeleteBook)
-	sub.Methods("POST").Path("/update").HandlerFunc(Controller.UpdateBook)
+	// handlers for API
+	getR := sm.Methods(http.MethodGet).Subrouter()
+	getR.HandleFunc("/books", ph.ListAll)
+	getR.HandleFunc("/books/{id:[0-9]+}", ph.ListSingle)
 
-	r.NotFoundHandler = http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			Result.New(1, 1, 99, "Not found!", nil).Create(&w, http.StatusNotFound)
-			return
-		})
+	putR := sm.Methods(http.MethodPut).Subrouter()
+	putR.HandleFunc("/books", ph.Update)
+	putR.Use(ph.MiddlewareValidateBook)
+
+	postR := sm.Methods(http.MethodPost).Subrouter()
+	postR.HandleFunc("/books", ph.Create)
+	postR.Use(ph.MiddlewareValidateBook)
+
+	deleteR := sm.Methods(http.MethodDelete).Subrouter()
+	deleteR.HandleFunc("/books/{id:[0-9]+}", ph.Delete)
+
+	// handler for documentation
+	opts := middleware.RedocOpts{SpecURL: "/swagger.yaml"}
+	sh := middleware.Redoc(opts, nil)
+
+	getR.Handle("/docs", sh)
+	getR.Handle("/swagger.yaml", http.FileServer(http.Dir("./")))
+
 }

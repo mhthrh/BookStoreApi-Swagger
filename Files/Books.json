@@ -1,1 +1,79 @@
-[{"Id":0,"ISBN":"071134f1-8f0d-11ec-91fc-f8a9634eef20","Title":"book1","Authors":["Author1","Author2","Author3"],"Publisher":"publisher1","PublishDate":"2022-02-16T09:44:25.7563228Z","Pages":150},{"Id":0,"ISBN":"071134f1-8f0d-11ec-91fc-f8a9634eef20","Title":"book1","Authors":["Author1","Author2","Author3"],"Publisher":"publisher1","PublishDate":"2022-02-16T09:44:25.7563228Z","Pages":150},{"Id":3,"ISBN":"b17e88f4-8f1b-11ec-9834-f8a9634eef20","Title":"book3","Authors":["Aut1","Aut2","Aut2"],"Publisher":"pub3","PublishDate":"2022-02-16T11:29:24.639154Z","Pages":220},{"Id":3,"ISBN":"bbb4c0ea-8f1b-11ec-98c8-f8a9634eef20","Title":"book3","Authors":["Aut1","Aut2","Aut2"],"Publisher":"pub3","PublishDate":"2022-02-16T11:29:41.771697Z","Pages":220},{"Id":3,"ISBN":"c5209959-8f1b-11ec-b674-f8a9634eef20","Title":"book3","Authors":["Aut1","Aut2","Aut2"],"Publisher":"pub3","PublishDate":"2022-02-16T11:29:57.5779673Z","Pages":220},{"Id":232,"ISBN":"1234567878","Title":"222","Authors":["65654","3243"],"Publisher":"tokhmi","PublishDate":"2022-02-17T05:41:17.5941856Z","Pages":245}]
+[
+  {
+    "Id": 0,
+    "ISBN": "071134f1-8f0d-11ec-91fc-f8a9634eef20",
+    "Title": "book1",
+    "Authors": [
+      "Author1",
+      "Author2",
+      "Author3"
+    ],
+    "Publisher": "publisher1",
+    "PublishDate": "2022-02-16T09:44:25.7563228Z",
+    "Pages": 150
+  },
+  {
+    "Id": 0,
+    "ISBN": "071134f1-8f0d-11ec-91fc-f8a9634eef20",
+    "Title": "book1",
+    "Authors": [
+      "Author1",
+      "Author2",
+      "Author3"
+    ],
+    "Publisher": "publisher1",
+    "PublishDate": "2022-02-16T09:44:25.7563228Z",
+    "Pages": 150
+  },
+  {
+    "Id": 3,
+    "ISBN": "b17e88f4-8f1b-11ec-9834-f8a9634eef20",
+    "Title": "book3",
+    "Authors": [
+      "Aut1",
+      "Aut2",
+      "Aut2"
+    ],
+    "Publisher": "pub3",
+    "PublishDate": "2022-02-16T11:29:24.639154Z",
+    "Pages": 220
+  },
+  {
+    "Id": 3,
+    "ISBN": "bbb4c0ea-8f1b-11ec-98c8-f8a9634eef20",
+    "Title": "book3",
+    "Authors": [
+      "Aut1",
+      "Aut2",
+      "Aut2"
+    ],
+    "Publisher": "pub3",
+    "PublishDate": "2022-02-16T11:29:41.771697Z",
+    "Pages": 220
+  },
+  {
+    "Id": 3,
+    "ISBN": "c5209959-8f1b-11ec-b674-f8a9634eef20",
+    "Title": "book3",
+    "Authors": [
+      "Aut1",
+      "Aut2",
+      "Aut2"
+    ],
+    "Publisher": "pub3",
+    "PublishDate": "2022-02-16T11:29:57.5779673Z",
+    "Pages": 220
+  },
+  {
+    "Id": 232,
+    "ISBN": "1234567878",
+    "Title": "222",
+    "Authors": [
+      "65654",
+      "3243"
+    ],
+    "Publisher": "tokhmi",
+    "PublishDate": "2022-02-17T05:41:17.5941856Z",
+    "Pages": 245
+  }
+]

@@ -1,0 +1,169 @@
+definitions:
+  Book:
+    description: Book defines the structure for an API book
+    properties:
+      Authors:
+        description: the Authors for the book
+        items:
+          type: string
+        maxLength: 10000
+        type: array
+      ISBN:
+        description: the ISBN for this book
+        maxLength: 100
+        type: string
+      Id:
+        description: the id for the book
+        format: int64
+        minimum: 1
+        type: integer
+      Pages:
+        description: the Pages for the book
+        format: int64
+        maxLength: 5000
+        type: integer
+      PublishDate:
+        description: the PublishDate for the book
+        format: date-time
+        maxLength: 100
+        type: string
+      Publisher:
+        description: the Publisher for the book
+        maxLength: 10000
+        type: string
+      Title:
+        description: the Title for this book
+        maxLength: 10000
+        type: string
+    required:
+    - ISBN
+    - Title
+    - Authors
+    - Publisher
+    - PublishDate
+    - Pages
+    type: object
+    x-go-package: github.com/mhthrh/ApiStore/Model/Book
+  GenericError:
+    description: GenericError is a generic error message returned by a server
+    properties:
+      message:
+        type: string
+        x-go-name: Message
+    type: object
+    x-go-package: github.com/mhthrh/ApiStore/Controller
+  ValidationError:
+    description: ValidationError is a collection of validation error messages
+    properties:
+      messages:
+        items:
+          type: string
+        type: array
+        x-go-name: Messages
+    type: object
+    x-go-package: github.com/mhthrh/ApiStore/Controller
+info: {}
+paths:
+  /books:
+    get:
+      description: Return a list of books from disk
+      operationId: listBooks
+      responses:
+        "200":
+          $ref: '#/responses/booksResponse'
+      tags:
+      - books
+    post:
+      description: Create a new book
+      operationId: createBook
+      parameters:
+      - description: |-
+          book data structure to Update or Create.
+          Note: the id field is ignored by update and create operations
+        in: body
+        name: Body
+        required: true
+        schema:
+          $ref: '#/definitions/Book'
+      responses:
+        "200":
+          $ref: '#/responses/bookResponse'
+        "422":
+          $ref: '#/responses/errorValidation'
+        "501":
+          $ref: '#/responses/errorResponse'
+      tags:
+      - books
+    put:
+      description: Update a books details
+      operationId: updateBook
+      parameters:
+      - description: |-
+          book data structure to Update or Create.
+          Note: the id field is ignored by update and create operations
+        in: body
+        name: Body
+        required: true
+        schema:
+          $ref: '#/definitions/Book'
+      - description: The id of the book for which the operation relates
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+        x-go-name: Id
+      responses:
+        "201":
+          $ref: '#/responses/noContentResponse'
+        "404":
+          $ref: '#/responses/errorResponse'
+        "422":
+          $ref: '#/responses/errorValidation'
+      tags:
+      - books
+  /books/{id}:
+    delete:
+      description: Update a books details
+      operationId: deleteBook
+      responses:
+        "201":
+          $ref: '#/responses/noContentResponse'
+        "404":
+          $ref: '#/responses/errorResponse'
+        "501":
+          $ref: '#/responses/errorResponse'
+      tags:
+      - books
+    get:
+      description: Return a list of books from disk
+      operationId: listSingle
+      responses:
+        "200":
+          $ref: '#/responses/bookResponse'
+        "404":
+          $ref: '#/responses/errorResponse'
+      tags:
+      - books
+responses:
+  bookResponse:
+    description: Data structure representing a single book
+    schema:
+      $ref: '#/definitions/Book'
+  booksResponse:
+    description: A list of books
+    schema:
+      items:
+        $ref: '#/definitions/Book'
+      type: array
+  errorResponse:
+    description: Generic error message returned as a string
+    schema:
+      $ref: '#/definitions/GenericError'
+  errorValidation:
+    description: Validation errors defined as an array of strings
+    schema:
+      $ref: '#/definitions/ValidationError'
+  noContentResponse:
+    description: No content is returned by this API endpoint
+swagger: "2.0"
