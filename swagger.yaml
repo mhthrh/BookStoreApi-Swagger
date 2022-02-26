@@ -161,7 +161,7 @@ responses:
     schema:
       $ref: '#/definitions/GenericError'
   errorValidation:
-    description: Validation errors defined as an array of strings
+    description: ValidationUtil errors defined as an array of strings
     schema:
       $ref: '#/definitions/ValidationError'
   noContentResponse:

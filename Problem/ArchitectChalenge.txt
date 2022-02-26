@@ -1,3 +1,0 @@
-To solve this issue,
-we can design an interface service and store all the data related to the blacklist in an in-memory database.
-Then, when responding to customer service, we can refine our list using the blacklist before sending a valid response.

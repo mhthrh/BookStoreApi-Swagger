@@ -1,10 +1,10 @@
 package Book
 
 import (
-	"encoding/json"
 	"fmt"
-	"github.com/mhthrh/ApiStore/Helper"
-	"path/filepath"
+	"github.com/mhthrh/ApiStore/Utility/DirectUtil"
+	"github.com/mhthrh/ApiStore/Utility/FileUtil"
+	"github.com/mhthrh/ApiStore/Utility/JsonUtil"
 	"time"
 )
 
@@ -13,6 +13,7 @@ var BookNotFound = fmt.Errorf("book not found")
 
 var (
 	path     string
+	Name     string
 	AllBooks Books
 )
 
@@ -23,19 +24,20 @@ type Books []*Book
 type KeyBook struct{}
 
 func init() {
-	d, _ := Helper.GetPath()
-	path = filepath.Join(d, "Files/books.json")
+	dir := DirectUtil.Ut{}
+	path, _ = dir.GetPath()
+	Name = "Files/books.json"
 	AllBooks = GetBooks()
 }
 
 // Book defines the structure for an API book
 // swagger:model
 type Book struct {
-	// the id for the book
+	// The ID for the book
 	//
 	// required: false
 	// min: 1
-	Id int `json:"Id"` // Unique identifier for the book
+	Id int `json:"Id" validate:"required"` // Unique identifier for the book
 	// the ISBN for this book
 	//
 	// required: true
@@ -70,28 +72,16 @@ type Book struct {
 
 // GetBooks returns all books from disk
 func GetBooks() Books {
-	return func() Books {
-		var books []*Book
-		s, err := Helper.Read(path)
-		if err != nil {
 
-		}
-		err = json.Unmarshal([]byte(s), &books)
-		if err != nil {
+	var books []*Book
+	s, err := FileUtil.New(path, Name).Read()
+	if err != nil {
 
-		}
-		return books
-	}()
-
-}
-
-// GetBookByRange returns a range book which matches the id from disk.
-// If a book is not found this function returns a BookNotFound error
-func GetBookByRange(i, j int) (Books, error) {
-	if findBookIndex(i) == -1 || findBookIndex(j) == -1 {
-		return nil, BookNotFound
 	}
-	return AllBooks[i:j], nil
+	JsonUtil.New(nil, nil).Json2Struct(s, &books)
+
+	return books
+
 }
 
 // GetBookByID returns a single book which matches the id from disk.
@@ -111,19 +101,20 @@ func UpdateBook(b Book) error {
 		return BookNotFound
 	}
 
-	// update the book in file
 	AllBooks[b.Id] = &b
-	Helper.Write(AllBooks, path)
+	FileUtil.New(path, Name).Write(JsonUtil.New(nil, nil).Struct2Json(AllBooks))
 	return nil
 }
 
 // AddBook adds a new book to disk
 func AddBook(b Book) {
-	// get the next id in sequence
-	maxID := AllBooks[len(AllBooks)-1].Id
-	b.Id = maxID + 1
+	if len(AllBooks) == 0 {
+		b.Id = 0
+	} else {
+		b.Id = AllBooks[len(AllBooks)-1].Id + 1
+	}
 	AllBooks = append(AllBooks, &b)
-	Helper.Write(AllBooks, path)
+	FileUtil.New(path, Name).Write(JsonUtil.New(nil, nil).Struct2Json(AllBooks))
 }
 
 // DeleteBook delete a book from disk
@@ -133,7 +124,7 @@ func DeleteBook(id int) error {
 		return BookNotFound
 	}
 	AllBooks = append(AllBooks[:i], AllBooks[i+1])
-	Helper.Write(AllBooks, path)
+	FileUtil.New(path, Name).Write(JsonUtil.New(nil, nil).Struct2Json(AllBooks))
 	return nil
 }
 
@@ -141,7 +132,7 @@ func DeleteBook(id int) error {
 // returns -1 when no book can be found
 func findBookIndex(id int) int {
 	for i, p := range AllBooks {
-		if p.Id == i {
+		if p.Id == id {
 			return i
 		}
 	}

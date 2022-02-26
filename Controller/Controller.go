@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"github.com/gorilla/mux"
-	"github.com/mhthrh/ApiStore/Helper"
-	"github.com/mhthrh/ApiStore/Helper/Validation"
 	Book2 "github.com/mhthrh/ApiStore/Model/Book"
-	"log"
+	"github.com/mhthrh/ApiStore/Utility/ExceptionUtil"
+	"github.com/mhthrh/ApiStore/Utility/JsonUtil"
+	"github.com/mhthrh/ApiStore/Utility/ValidationUtil"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 // KeyBook is a key used for the book obj on context
@@ -17,13 +19,14 @@ type KeyBook struct{}
 
 // books handler for getting and updating books
 type books struct {
-	l *log.Logger
-	v *Validation.Validation
+	l *logrus.Entry
+	v *ValidationUtil.Validation
+	e *ExceptionUtil.Exception
 }
 
 // NewBooks returns a new book handler with  logger
-func NewBooks(l *log.Logger, v *Validation.Validation) *books {
-	return &books{l, v}
+func NewBooks(l *logrus.Entry, v *ValidationUtil.Validation, e *ExceptionUtil.Exception) *books {
+	return &books{l, v, e}
 }
 
 // InvalidPath is an error message when the book path is not valid
@@ -39,54 +42,51 @@ type ValidationError struct {
 	Messages []string `json:"messages"`
 }
 
-// getBookID returns the book ID from the URL
+// getID returns the book ID from the URL
 // Panics if it cannot convert the id into an integer
 // this must never happen as the router ensures that
 // this is a valid number
-func getBookID(r *http.Request) int {
-	// parse the book id from the url
-	vars := mux.Vars(r)
-	// convert the id into an integer and return
-	id, err := strconv.Atoi(vars["id"])
+func getID(r *http.Request) int {
+	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
-		// never must happen
 		panic(err)
 	}
 	return id
 }
 
-// MiddlewareValidateBook validates the book in the request and calls next if ok
-func (b *books) MiddlewareValidateBook(next http.Handler) http.Handler {
+// HttpMiddleware validates the book in the request and calls next if ok
+func (b *books) HttpMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		bo := &Book2.Books{}
-
-		err := Helper.FromJSON(bo, r.Body)
+		var bo Book2.Book
+		j := JsonUtil.New(w, r.Body)
+		err := j.FromJSON(&bo)
 		if err != nil {
-			b.l.Println("[ERROR] deserializing book", err)
-
+			start := time.Now()
+			b.l.WithFields(map[string]interface{}{
+				"method":     r.Method,
+				"path":       r.URL,
+				"status":     nil,
+				"latency_ns": time.Since(start).Nanoseconds(),
+			}).Info("request details")
 			w.WriteHeader(http.StatusBadRequest)
-			if Helper.ToJSON(&GenericError{Message: err.Error()}, w) != nil {
-				b.l.Println("[ERROR] deserializing book", err)
+			if j.ToJSON(&GenericError{Message: err.Error()}) != nil {
+				b.l.Errorf(b.e.SelectException(1), err)
 			}
 			return
 		}
 
-		// validate the book
 		errs := b.v.Validate(bo)
 		if len(errs) != 0 {
-			b.l.Println("[ERROR] validating book", errs)
+			b.l.Println(b.e.SelectException(3), err)
 
-			// return the validation messages as an array
 			w.WriteHeader(http.StatusUnprocessableEntity)
-			Helper.ToJSON(&ValidationError{Messages: errs.Errors()}, w)
+			j.ToJSON(&ValidationError{Messages: errs.Errors()})
 			return
 		}
 
-		// add the book to the context
 		ctx := context.WithValue(r.Context(), KeyBook{}, bo)
 		r = r.WithContext(ctx)
 
-		// Call the next handler, which can be another middleware in the chain, or the final handler.
 		next.ServeHTTP(w, r)
 	})
 }
@@ -101,10 +101,9 @@ func (b *books) MiddlewareValidateBook(next http.Handler) http.Handler {
 
 // Create handles POST requests to add new books
 func (b *books) Create(rw http.ResponseWriter, r *http.Request) {
-	// fetch the book from the context
 	bo := r.Context().Value(KeyBook{}).(Book2.Book)
 
-	b.l.Printf("[DEBUG] Inserting book: %#v\n", bo)
+	b.l.Printf(b.e.SelectException(1004), bo)
 	Book2.AddBook(bo)
 }
 
@@ -115,14 +114,10 @@ func (b *books) Create(rw http.ResponseWriter, r *http.Request) {
 
 // ListAll handles GET requests and returns all current books
 func (b *books) ListAll(w http.ResponseWriter, r *http.Request) {
-	b.l.Println("[DEBUG] get all records")
+	b.l.Println(b.e.SelectException(1005), nil)
 
-	bo := Book2.GetBooks()
-
-	err := Helper.ToJSON(bo, w)
-	if err != nil {
-		// we should never be here but log the error just in case
-		b.l.Println("[ERROR] serializing book", err)
+	if err := JsonUtil.New(w, nil).ToJSON(Book2.GetBooks()); err != nil {
+		b.l.Println(b.e.SelectException(1006), err)
 	}
 }
 
@@ -134,33 +129,30 @@ func (b *books) ListAll(w http.ResponseWriter, r *http.Request) {
 
 // ListSingle handles GET requests
 func (b *books) ListSingle(rw http.ResponseWriter, r *http.Request) {
-	id := getBookID(r)
-
-	b.l.Println("[DEBUG] get record id", id)
-
+	id := getID(r)
+	b.l.Println(b.e.SelectException(1007), id)
 	bo, err := Book2.GetBookByID(id)
 
 	switch err {
 	case nil:
 
 	case Book2.BookNotFound:
-		b.l.Println("[ERROR] fetching book", err)
+		b.l.Println(b.e.SelectException(1008), err)
 
 		rw.WriteHeader(http.StatusNotFound)
-		Helper.ToJSON(&GenericError{Message: err.Error()}, rw)
+		JsonUtil.New(rw, nil).ToJSON(&GenericError{Message: err.Error()})
 		return
 	default:
-		b.l.Println("[ERROR] fetching book", err)
+		b.l.Println(b.e.SelectException(1008), err)
 
 		rw.WriteHeader(http.StatusInternalServerError)
-		Helper.ToJSON(&GenericError{Message: err.Error()}, rw)
+		JsonUtil.New(rw, nil).ToJSON(&GenericError{Message: err.Error()})
 		return
 	}
 
-	err = Helper.ToJSON(bo, rw)
+	err = JsonUtil.New(rw, nil).ToJSON(bo)
 	if err != nil {
-		// we should never be here but log the error just in case
-		b.l.Println("[ERROR] serializing book", err)
+		b.l.Println(b.e.SelectException(1009), err)
 	}
 }
 
@@ -174,16 +166,16 @@ func (b *books) ListSingle(rw http.ResponseWriter, r *http.Request) {
 
 // Delete handles DELETE requests and removes items from the database
 func (b *books) Delete(w http.ResponseWriter, r *http.Request) {
-	id := getBookID(r)
+	id := getID(r)
 
-	b.l.Println("deleting record id", id)
+	b.l.Println(b.e.SelectException(1014), id)
 
 	err := Book2.DeleteBook(id)
 	if err == Book2.BookNotFound {
-		b.l.Println("[ERROR] deleting record id does not exist")
+		b.l.Println(b.e.SelectException(1015))
 
 		w.WriteHeader(http.StatusNotFound)
-		Helper.ToJSON(&GenericError{Message: err.Error()}, w)
+		JsonUtil.New(w, nil).ToJSON(&GenericError{Message: err.Error()})
 		return
 	}
 
@@ -191,7 +183,7 @@ func (b *books) Delete(w http.ResponseWriter, r *http.Request) {
 		b.l.Println("[ERROR] deleting record", err)
 
 		w.WriteHeader(http.StatusInternalServerError)
-		Helper.ToJSON(&GenericError{Message: err.Error()}, w)
+		JsonUtil.New(w, nil).ToJSON(&GenericError{Message: err.Error()})
 		return
 	}
 
@@ -209,33 +201,16 @@ func (b *books) Delete(w http.ResponseWriter, r *http.Request) {
 // Update handles PUT requests to update books
 func (b *books) Update(w http.ResponseWriter, r *http.Request) {
 
-	// fetch the book from the context
 	pr := r.Context().Value(KeyBook{}).(Book2.Book)
-	b.l.Println("[DEBUG] updating record id", pr.Id)
+	b.l.Println(b.e.SelectException(1010), pr.Id)
 
 	err := Book2.UpdateBook(pr)
 	if err == Book2.BookNotFound {
-		b.l.Println("[ERROR] book not found", err)
-
+		b.l.Println(b.e.SelectException(1011), err)
 		w.WriteHeader(http.StatusNotFound)
-		Helper.ToJSON(&GenericError{Message: "book not found"}, w)
+		JsonUtil.New(w, nil).ToJSON(&GenericError{Message: "book not found"})
 		return
 	}
 
-	// write the no content success header
 	w.WriteHeader(http.StatusNoContent)
-}
-
-func minmax(array []Book2.Book) (int, int) {
-	var max = array[0].Id
-	var min = array[0].Id
-	for _, value := range array {
-		if max < value.Id {
-			max = value.Id
-		}
-		if min > value.Id {
-			min = value.Id
-		}
-	}
-	return min, max
 }

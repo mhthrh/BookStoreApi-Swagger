@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
-	"flag"
+	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/mhthrh/ApiStore/Utility/ConfigUtil"
+	"github.com/mhthrh/ApiStore/Utility/DbUtil/DbPool"
+	"github.com/mhthrh/ApiStore/Utility/LogUtil"
 	"github.com/mhthrh/ApiStore/View"
 	"log"
 	"net/http"
@@ -13,43 +16,60 @@ import (
 )
 
 func main() {
-	addr := flag.String("addr", "localhost:8080", "the TCP address for the server to listen on, in the form 'host:port'")
+	a := DbPool.DbInfo{
+		Host:            "localhost",
+		Port:            5432,
+		User:            "postgres",
+		Pass:            "123456",
+		Dbname:          "Curency",
+		Driver:          "postgres",
+		ConnectionCount: 25,
+		RefreshPeriod:   120,
+	}
+	pp := DbPool.New(&a)
+	//len(*pp)
+	ccc := pp.Pull()
 
-	l := log.New(os.Stdout, "BookStore-api ", log.LstdFlags)
+	pp.Push(ccc)
+
+	cfg := ConfigUtil.ReadConfig("Files/ConfigCoded.json")
+	l := LogUtil.New()
 	sm := mux.NewRouter()
 	View.RunApiOnRouter(sm, l)
-	// create a new server
-	s := http.Server{
-		Addr:         *addr,             // configure the bind address
-		Handler:      sm,                // set the default handler
-		ErrorLog:     l,                 // set the logger for the server
-		ReadTimeout:  10 * time.Second,  // max time to read request from the client
-		WriteTimeout: 20 * time.Second,  // max time to write response to the client
-		IdleTimeout:  180 * time.Second, // max time for connections using TCP Keep-Alive
+
+	server := http.Server{
+		Addr:              fmt.Sprintf("%s:%d", cfg.Server.IP, cfg.Server.Port),
+		Handler:           sm,
+		ErrorLog:          log.New(LogUtil.LogrusErrorWriter{}, "", 0),
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      20 * time.Second,
+		IdleTimeout:       180 * time.Second,
+		ReadHeaderTimeout: 0,
+		MaxHeaderBytes:    0,
+		TLSConfig:         nil,
+		TLSNextProto:      nil,
+		ConnState:         nil,
+		BaseContext:       nil,
+		ConnContext:       nil,
 	}
 
-	// start the server
 	go func() {
-		l.Println("Starting server on  %s", *addr)
+		l.Println("Starting server on  %s:%d", cfg.Server.IP, cfg.Server.Port)
 
-		err := s.ListenAndServe()
+		err := server.ListenAndServe()
 		if err != nil {
 			l.Printf("Error starting server: %s\n", err)
 			os.Exit(1)
 		}
 	}()
 
-	// trap sigterm or interrupt and gracefully shutdown the server
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	signal.Notify(c, os.Kill)
 
-	// Block until a signal is received.
-	sig := <-c
-	log.Println("Got signal:", sig)
+	log.Println("Got signal:", <-c)
 
-	// gracefully shutdown the server, waiting max 30 seconds for current operations to complete
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
-	s.Shutdown(ctx)
+	server.Shutdown(ctx)
 
 }

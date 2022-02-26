@@ -30,7 +30,7 @@ type errorResponseWrapper struct {
 	Body GenericError
 }
 
-// Validation errors defined as an array of strings
+// ValidationUtil errors defined as an array of strings
 // swagger:response errorValidation
 type errorValidationWrapper struct {
 	// Collection of the errors
