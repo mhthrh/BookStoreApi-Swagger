@@ -8,8 +8,8 @@ import (
 )
 
 type DB struct {
-	db      *sql.DB
-	working bool
+	Db      *sql.DB
+	Working bool
 }
 
 type DBs []*DB
@@ -37,8 +37,8 @@ func New(d *DbInfo) *DBs {
 		if d := newConnection(cnn, d.Driver); d != nil {
 			fmt.Println("kossss ", i)
 			dbs = append(dbs, &DB{
-				db:      d,
-				working: false,
+				Db:      d,
+				Working: false,
 			})
 		} else {
 			fmt.Println("kirrrr ", i)
@@ -51,12 +51,12 @@ func New(d *DbInfo) *DBs {
 				fmt.Println("start refresh")
 				for i, i2 := range dbs {
 					fmt.Println("start ping")
-					if i2.db.Ping() != nil {
+					if i2.Db.Ping() != nil {
 						fmt.Println("finish ping")
 						if new := newConnection(cnn, d.Driver); new != nil {
 							dbs[i] = &DB{
-								db:      newConnection(cnn, d.Driver),
-								working: false,
+								Db:      newConnection(cnn, d.Driver),
+								Working: false,
 							}
 						} else {
 							//must aware admin
@@ -84,7 +84,7 @@ func (db *DBs) Pull() *DB {
 	go func() {
 		for {
 			for _, i2 := range *db {
-				if i2.working == false {
+				if i2.Working == false {
 					c1 <- i2
 				}
 			}
@@ -97,16 +97,16 @@ func (db *DBs) Pull() *DB {
 	}()
 	select {
 	case msg := <-c1:
-		msg.working = true
+		msg.Working = true
 		return msg
 	case _ = <-c2:
 		return &DB{
-			db:      nil,
-			working: false,
+			Db:      nil,
+			Working: false,
 		}
 	}
 }
 
 func (db *DBs) Push(cc *DB) {
-	cc.working = false
+	cc.Working = false
 }

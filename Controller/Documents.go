@@ -13,14 +13,14 @@ import "github.com/mhthrh/ApiStore/Model/Book"
 //	Consumes:
 //	- application/json
 //
-//	books:
+//	Controller:
 //	- application/json
 //
 // swagger:meta
 
 //
 // NOTE: Types defined here are purely for documentation purposes
-// these types are not used by any of the books
+// these types are not used by any of the Controller
 
 // Generic error message returned as a string
 // swagger:response errorResponse
@@ -38,10 +38,10 @@ type errorValidationWrapper struct {
 	Body ValidationError
 }
 
-// A list of books
+// A list of Controller
 // swagger:response booksResponse
 type booksResponseWrapper struct {
-	// All current books
+	// All current Controller
 	// in: body
 	Body []Book.Book
 }

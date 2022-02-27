@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/mhthrh/ApiStore/Utility/ConfigUtil"
-	"github.com/mhthrh/ApiStore/Utility/DbUtil/DbPool"
 	"github.com/mhthrh/ApiStore/Utility/LogUtil"
 	"github.com/mhthrh/ApiStore/View"
 	"log"
@@ -16,26 +15,12 @@ import (
 )
 
 func main() {
-	a := DbPool.DbInfo{
-		Host:            "localhost",
-		Port:            5432,
-		User:            "postgres",
-		Pass:            "123456",
-		Dbname:          "Curency",
-		Driver:          "postgres",
-		ConnectionCount: 25,
-		RefreshPeriod:   120,
-	}
-	pp := DbPool.New(&a)
-	//len(*pp)
-	ccc := pp.Pull()
-
-	pp.Push(ccc)
 
 	cfg := ConfigUtil.ReadConfig("Files/ConfigCoded.json")
 	l := LogUtil.New()
 	sm := mux.NewRouter()
-	View.RunApiOnRouter(sm, l)
+
+	View.RunApiOnRouter(sm, l, cfg)
 
 	server := http.Server{
 		Addr:              fmt.Sprintf("%s:%d", cfg.Server.IP, cfg.Server.Port),
