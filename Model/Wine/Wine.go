@@ -16,6 +16,8 @@ type Wine struct {
 	Volume   float32
 }
 
+var WineNotFound = fmt.Errorf("wine not found")
+
 type Tool struct {
 	db *sql.DB
 }
@@ -51,7 +53,7 @@ func (t *Tool) Find(id int) (Wine, error) {
 }
 
 func (t *Tool) Add(p Wine) (interface{}, error) {
-	_, err := PgSql.ExecuteCommand(fmt.Sprintf("INSERT INTO public.\"Wines\"(\"ID\", \"Name\", \"MadeDate\", \"Price\", \"Volume\")VALUES (%d, %s, %s,%F , %2f)", p.ID, p.Name, p.MadeDate, p.Price, p.Volume), t.db)
+	_, err := PgSql.ExecuteCommand(fmt.Sprintf("INSERT INTO public.\"Wines\"(\"ID\", \"Name\", \"MadeDate\", \"Price\", \"Volume\")VALUES (nextval('mysequence'), '%s', '%s',%F , %2f)", p.Name, p.MadeDate, p.Price, p.Volume), t.db)
 	if err != nil {
 		return nil, err
 	}

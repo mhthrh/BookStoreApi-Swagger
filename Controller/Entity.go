@@ -3,18 +3,20 @@ package Controller
 import (
 	"fmt"
 	"github.com/mhthrh/ApiStore/Utility/ConfigUtil"
+	"github.com/mhthrh/ApiStore/Utility/DbUtil/DbPool"
 	"github.com/mhthrh/ApiStore/Utility/ExceptionUtil"
 	"github.com/mhthrh/ApiStore/Utility/ValidationUtil"
 	"github.com/sirupsen/logrus"
 )
 
-type KeyBook struct{}
+type Key struct{}
 
 type Controller struct {
-	l *logrus.Entry
-	v *ValidationUtil.Validation
-	e *ExceptionUtil.Exception
-	c *ConfigUtil.Config
+	l  *logrus.Entry
+	v  *ValidationUtil.Validation
+	e  *ExceptionUtil.Exception
+	c  *ConfigUtil.Config
+	db *DbPool.DBs
 }
 
 var InvalidPath = fmt.Errorf("invalid Path, path must be /Controller/[id]")
@@ -27,6 +29,7 @@ type ValidationError struct {
 	Messages []string `json:"messages"`
 }
 
-func NewBooks(l *logrus.Entry, v *ValidationUtil.Validation, e *ExceptionUtil.Exception, c *ConfigUtil.Config) *Controller {
-	return &Controller{l, v, e, c}
+func NewBook(l *logrus.Entry, v *ValidationUtil.Validation, e *ExceptionUtil.Exception, c *ConfigUtil.Config, db *DbPool.DBs) *Controller {
+	vvvvv := &Controller{l, v, e, c, db}
+	return vvvvv
 }

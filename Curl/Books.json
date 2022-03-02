@@ -1,0 +1,12 @@
+{
+  "Id": 33,
+  "ISBN": "SU8790",
+  "Title": "title",
+  "Authors": [
+    "au1",
+    "au2"
+  ],
+  "Publisher": "Publisher",
+  "PublishDate": "2022-02-28T10:29:55.1867579Z",
+  "Pages": 200
+}

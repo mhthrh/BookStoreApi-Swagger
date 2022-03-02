@@ -1,7 +1,8 @@
 package Controller
 
 import (
-	Book2 "github.com/mhthrh/ApiStore/Model/Book"
+	"github.com/mhthrh/ApiStore/Model/Book"
+	"github.com/mhthrh/ApiStore/Model/Result"
 	"github.com/mhthrh/ApiStore/Utility/HttpUtil"
 	"github.com/mhthrh/ApiStore/Utility/JsonUtil"
 	"net/http"
@@ -15,12 +16,13 @@ import (
 //  422: errorValidation
 //  501: errorResponse
 
-// Create handles POST requests to add new Controller
-func (b *Controller) Create(rw http.ResponseWriter, r *http.Request) {
-	bo := r.Context().Value(KeyBook{}).(Book2.Book)
+// AddBook handles POST requests to add new Controller
+func (b *Controller) AddBook(rw http.ResponseWriter, r *http.Request) {
+	book := r.Context().Value(Key{}).(*Book.Book)
+	b.l.Printf(b.e.SelectException(1004), book)
+	Book.AddBook(*book)
+	Result.New((*book).Id, 0, http.StatusOK, "Success", "").SendResponse(&rw)
 
-	b.l.Printf(b.e.SelectException(1004), bo)
-	Book2.AddBook(bo)
 }
 
 // swagger:route GET /Controller Controller listBooks
@@ -28,13 +30,12 @@ func (b *Controller) Create(rw http.ResponseWriter, r *http.Request) {
 // responses:
 //	200: booksResponse
 
-// ListAll handles GET requests and returns all current Controller
-func (b *Controller) ListAll(w http.ResponseWriter, r *http.Request) {
+// BookSList handles GET requests and returns all current Controller
+func (b *Controller) BookSList(w http.ResponseWriter, r *http.Request) {
 	b.l.Println(b.e.SelectException(1005), nil)
 
-	if err := JsonUtil.New(w, nil).ToJSON(Book2.GetBooks()); err != nil {
-		b.l.Println(b.e.SelectException(1006), err)
-	}
+	Result.New(0, 0, http.StatusOK, "Success", JsonUtil.New(nil, nil).Struct2Json(Book.GetBooks())).SendResponse(&w)
+
 }
 
 // swagger:route GET /Controller/{id} Controller listSingle
@@ -43,33 +44,29 @@ func (b *Controller) ListAll(w http.ResponseWriter, r *http.Request) {
 //	200: bookResponse
 //	404: errorResponse
 
-// ListSingle handles GET requests
-func (b *Controller) ListSingle(rw http.ResponseWriter, r *http.Request) {
+// GetBook handles GET requests
+func (b *Controller) GetBook(rw http.ResponseWriter, r *http.Request) {
 	id := HttpUtil.GetID(r)
 	b.l.Println(b.e.SelectException(1007), id)
-	bo, err := Book2.GetBookByID(id)
+	bo, err := Book.GetBookByID(id)
 
 	switch err {
 	case nil:
 
-	case Book2.BookNotFound:
+	case Book.BookNotFound:
 		b.l.Println(b.e.SelectException(1008), err)
+		Result.New(0, 0, http.StatusNotFound, "UnSuccess", JsonUtil.New(nil, nil).Struct2Json(&GenericError{Message: err.Error()})).SendResponse(&rw)
 
-		rw.WriteHeader(http.StatusNotFound)
-		JsonUtil.New(rw, nil).ToJSON(&GenericError{Message: err.Error()})
 		return
 	default:
 		b.l.Println(b.e.SelectException(1008), err)
+		Result.New(0, 0, http.StatusInternalServerError, "UnSuccess", JsonUtil.New(nil, nil).Struct2Json(&GenericError{Message: err.Error()})).SendResponse(&rw)
 
-		rw.WriteHeader(http.StatusInternalServerError)
-		JsonUtil.New(rw, nil).ToJSON(&GenericError{Message: err.Error()})
 		return
 	}
 
-	err = JsonUtil.New(rw, nil).ToJSON(bo)
-	if err != nil {
-		b.l.Println(b.e.SelectException(1009), err)
-	}
+	Result.New(0, 0, http.StatusOK, "Success", JsonUtil.New(nil, nil).Struct2Json(bo)).SendResponse(&rw)
+
 }
 
 // swagger:route DELETE /Controller/{id} Controller deleteBook
@@ -80,30 +77,26 @@ func (b *Controller) ListSingle(rw http.ResponseWriter, r *http.Request) {
 //  404: errorResponse
 //  501: errorResponse
 
-// Delete handles DELETE requests and removes items from the database
-func (b *Controller) Delete(w http.ResponseWriter, r *http.Request) {
+// DeleteBook handles DELETE requests and removes items from the database
+func (b *Controller) DeleteBook(w http.ResponseWriter, r *http.Request) {
 	id := HttpUtil.GetID(r)
 
 	b.l.Println(b.e.SelectException(1014), id)
 
-	err := Book2.DeleteBook(id)
-	if err == Book2.BookNotFound {
+	err := Book.DeleteBook(id)
+	if err == Book.BookNotFound {
 		b.l.Println(b.e.SelectException(1015))
-
-		w.WriteHeader(http.StatusNotFound)
-		JsonUtil.New(w, nil).ToJSON(&GenericError{Message: err.Error()})
+		Result.New(0, -1, http.StatusNotFound, "UnSuccess", JsonUtil.New(nil, nil).Struct2Json(&GenericError{Message: err.Error()})).SendResponse(&w)
 		return
 	}
 
 	if err != nil {
 		b.l.Println("[ERROR] deleting record", err)
-
-		w.WriteHeader(http.StatusInternalServerError)
-		JsonUtil.New(w, nil).ToJSON(&GenericError{Message: err.Error()})
+		Result.New(0, -1, http.StatusInternalServerError, "UnSuccess", JsonUtil.New(nil, nil).Struct2Json(&GenericError{Message: err.Error()})).SendResponse(&w)
 		return
 	}
+	Result.New(0, 0, http.StatusOK, "Success", "").SendResponse(&w)
 
-	w.WriteHeader(http.StatusNoContent)
 }
 
 // swagger:route PUT /Controller Controller updateBook
@@ -114,19 +107,18 @@ func (b *Controller) Delete(w http.ResponseWriter, r *http.Request) {
 //  404: errorResponse
 //  422: errorValidation
 
-// Update handles PUT requests to update Controller
-func (b *Controller) Update(w http.ResponseWriter, r *http.Request) {
+// UpdateBook handles PUT requests to update Controller
+func (b *Controller) UpdateBook(w http.ResponseWriter, r *http.Request) {
 
-	pr := r.Context().Value(KeyBook{}).(Book2.Book)
-	b.l.Println(b.e.SelectException(1010), pr.Id)
+	book := r.Context().Value(Key{}).(Book.Book)
+	b.l.Println(b.e.SelectException(1010), book.Id)
 
-	err := Book2.UpdateBook(pr)
-	if err == Book2.BookNotFound {
+	err := Book.UpdateBook(book)
+	if err == Book.BookNotFound {
 		b.l.Println(b.e.SelectException(1011), err)
-		w.WriteHeader(http.StatusNotFound)
-		JsonUtil.New(w, nil).ToJSON(&GenericError{Message: "book not found"})
+		Result.New(0, -1, http.StatusNotFound, "UnSuccess", JsonUtil.New(nil, nil).Struct2Json(&GenericError{Message: "Wine not found"})).SendResponse(&w)
+
 		return
 	}
-
-	w.WriteHeader(http.StatusNoContent)
+	Result.New(0, 0, http.StatusOK, "Success", "").SendResponse(&w)
 }

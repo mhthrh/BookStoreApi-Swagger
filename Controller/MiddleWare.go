@@ -5,13 +5,13 @@ import (
 	"errors"
 	"fmt"
 	Book2 "github.com/mhthrh/ApiStore/Model/Book"
+	"github.com/mhthrh/ApiStore/Model/Result"
 	"github.com/mhthrh/ApiStore/Model/Wine"
 	"github.com/mhthrh/ApiStore/Utility/JsonUtil"
 	"net/http"
 	"time"
 )
 
-// HttpMiddleware validates the book in the request and calls next if ok
 func (b *Controller) HttpMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fErr := func(err error, i int, in interface{}) {
@@ -22,11 +22,10 @@ func (b *Controller) HttpMiddleware(next http.Handler) http.Handler {
 				"status":     nil,
 				"latency_ns": time.Since(start).Nanoseconds(),
 			}).Info("request details")
-			w.WriteHeader(i)
-			JsonUtil.New(w, r.Body).ToJSON(&in)
+			Result.New(0, -1, http.StatusBadRequest, "UnSuccess", JsonUtil.New(nil, nil).Struct2Json(&in)).SendResponse(&w)
 		}
 		fNext := func(in interface{}) {
-			ctx := context.WithValue(r.Context(), KeyBook{}, in)
+			ctx := context.WithValue(r.Context(), Key{}, in)
 			r = r.WithContext(ctx)
 			next.ServeHTTP(w, r)
 		}
@@ -42,7 +41,7 @@ func (b *Controller) HttpMiddleware(next http.Handler) http.Handler {
 
 		var intFace interface{}
 		switch r.RequestURI {
-		case "/Controller":
+		case "/books":
 			intFace = &Book2.Book{}
 		case "/wines":
 			intFace = &Wine.Wine{}
